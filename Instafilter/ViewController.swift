@@ -10,7 +10,10 @@ import CoreImage
 
 class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
     @IBOutlet var imageView: UIImageView!
-    @IBOutlet var slider: UISlider!
+    @IBOutlet var intensity: UISlider!
+    @IBOutlet var scale: UISlider!
+    @IBOutlet var radius: UISlider!
+    @IBOutlet var changeFilterButton: UIButton!
     var currentImage: UIImage!
     var context: CIContext!
     var currentFilter: CIFilter!
@@ -23,10 +26,17 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
         
         context =  CIContext()
         currentFilter = CIFilter(name: "CISepiaTone")
+        
+        intensity.tintColor = .gray
+        intensity.isUserInteractionEnabled = false
+        scale.tintColor = .gray
+        scale.isUserInteractionEnabled = false
+        radius.tintColor = .gray
+        radius.isUserInteractionEnabled = false
     }
 
     @IBAction func changeFilter(_ sender: UIButton) {
-        let alertController = UIAlertController(title: "Choose filter", message: nil, preferredStyle: .actionSheet)
+        let alertController = UIAlertController(title: "Change filter", message: nil, preferredStyle: .actionSheet)
         alertController.addAction(createAlertAction(using: "CIBumpDistortion"))
         alertController.addAction(createAlertAction(using: "CIGaussianBlur"))
         alertController.addAction(createAlertAction(using: "CIPixellate"))
@@ -45,11 +55,24 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
     }
     
     @IBAction func save(_ sender: Any) {
-        guard let image = imageView.image else { return }
-        UIImageWriteToSavedPhotosAlbum(image, self, #selector(image(_:didFinishSavingWithError:contextInfo:)), nil)
+        if let image = imageView.image {
+            UIImageWriteToSavedPhotosAlbum(image, self, #selector(image(_:didFinishSavingWithError:contextInfo:)), nil)
+        } else {
+            let alertController = UIAlertController(title: "No image", message: "There's no image to save, try selecting one first.", preferredStyle: .alert)
+            alertController.addAction(UIAlertAction(title: "Okay", style: .default))
+            present(alertController, animated: true)
+        }
     }
     
     @IBAction func intensityChanged(_ sender: Any) {
+        applyProcessing()
+    }
+    
+    @IBAction func scaleChanged(_ sender: Any) {
+        applyProcessing()
+    }
+    
+    @IBAction func radiusChanged(_ sender: Any) {
         applyProcessing()
     }
     
@@ -71,6 +94,7 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
     }
     
     func applyProcessing() {
+        turnOnSliders()
         setInputKeys()
         
         guard let CIImage = currentFilter.outputImage else { return }
@@ -85,14 +109,25 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
     }
     
     func setFilter(action: UIAlertAction) {
+        
         guard currentImage != nil else { return }
         guard let actionTitle = action.title else { return }
         let beginImage = CIImage(image: currentImage)
         
         currentFilter = CIFilter(name: actionTitle)
         currentFilter.setValue(beginImage, forKey: kCIInputImageKey)
+        changeFilterButton.setTitle(currentFilter.name, for: .normal)
         
         applyProcessing()
+    }
+    
+    func turnOnSliders() {
+        intensity.tintColor = .systemBlue
+        intensity.isUserInteractionEnabled = true
+        scale.tintColor = .systemBlue
+        scale.isUserInteractionEnabled = true
+        radius.tintColor = .systemBlue
+        radius.isUserInteractionEnabled = true
     }
     
     func setInputKeys() {
@@ -100,15 +135,24 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
         let imageSize = currentImage.size
         
         if inputKeys.contains(kCIInputIntensityKey) {
-            currentFilter.setValue(slider.value, forKey: kCIInputIntensityKey)
+            currentFilter.setValue(intensity.value, forKey: kCIInputIntensityKey)
+        } else {
+            intensity.tintColor = .gray
+            intensity.isUserInteractionEnabled = false
         }
         
         if inputKeys.contains(kCIInputScaleKey) {
-            currentFilter.setValue(slider.value * 10, forKey: kCIInputScaleKey)
+            currentFilter.setValue(scale.value * 10, forKey: kCIInputScaleKey)
+        } else {
+            scale.tintColor = .gray
+            scale.isUserInteractionEnabled = false
         }
         
         if inputKeys.contains(kCIInputRadiusKey) {
-            currentFilter.setValue(slider.value * 200, forKey: kCIInputRadiusKey)
+            currentFilter.setValue(radius.value * 200, forKey: kCIInputRadiusKey)
+        } else {
+            radius.tintColor = .gray
+            radius.isUserInteractionEnabled = false
         }
         
         if inputKeys.contains(kCIInputCenterKey) {
